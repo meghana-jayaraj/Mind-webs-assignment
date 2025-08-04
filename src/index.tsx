@@ -1,3 +1,4 @@
+import 'leaflet/dist/leaflet.css';
 import 'antd/dist/reset.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
