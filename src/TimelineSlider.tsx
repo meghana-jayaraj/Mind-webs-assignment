@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { Slider } from 'antd';
 import 'antd/dist/reset.css'; // Ensure AntD styles load
 
-const TimelineSlider: React.FC = () => {
-  const [value, setValue] = useState<number | number[]>([0, 24]);
+interface TimelineSliderProps {
+  onRangeChange: (range: { start: string; end: string }) => void;
+}
+const TimelineSlider: React.FC<TimelineSliderProps> = ({ onRangeChange }) => {
+  const [value, setValue] = useState<number[]>([0, 24]);
 
   const onChange = (val: number | number[]) => {
-    setValue(val);
+    if (Array.isArray(val)) {
+      setValue(val);
+    }
   };
 
   const tipFormatter = (val?: number) => {

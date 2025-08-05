@@ -5,6 +5,16 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet-draw';
 import Sidebar from './Sidebar';
+import TimelineSlider from './TimelineSlider';
+
+interface PolygonMapProps {
+  timelineRange: {
+    start: string;
+    end: string;
+  };
+  onTimelineChange: (range: { start: string; end: string }) => void;
+}
+
 
 const center: [number, number] = [17.385044, 78.486671];
 const datasources = ['Crop Field', 'Waterbody'];
@@ -20,9 +30,13 @@ type Rule = {
 // MODIFIED: Added appliedColor
 interface PolygonData {
   latlngs: LatLngExpression[];
-  metadata: { source: string };
+  metadata: {
+    source: string;
+    centroid: { lat: number; lng: number };
+  };
   appliedColor?: string;
 }
+
 
 const PolygonDrawer = ({
   drawnItemsRef,
@@ -87,7 +101,20 @@ const PolygonDrawer = ({
       const color = getColorForValue(dummyValue);
       layer.setStyle({ color });
 
-      addPolygon({ latlngs, metadata: { source: selectedSource }, appliedColor: color });
+      const centerLatLng = layer.getBounds().getCenter(); // 📍 Centroid for API use
+
+addPolygon({
+  latlngs,
+  metadata: {
+    source: selectedSource,
+    centroid: {
+      lat: centerLatLng.lat,
+      lng: centerLatLng.lng
+    }
+  },
+  appliedColor: color
+});
+
 
       drawnItems.addLayer(layer);
     });
@@ -100,7 +127,9 @@ const PolygonDrawer = ({
   return null;
 };
 
-const PolygonMap: React.FC = () => {
+
+
+const PolygonMap: React.FC<PolygonMapProps> = ({ timelineRange, onTimelineChange }) => {
   const drawnItemsRef = useRef<L.FeatureGroup>(new L.FeatureGroup());
   const mapRef = useRef<L.Map | null>(null);
   const [polygonData, setPolygonData] = useState<PolygonData[]>([]);
@@ -112,7 +141,9 @@ const PolygonMap: React.FC = () => {
     color: 'green', operator: '>=', value: 25
   }]);
 
-  const getColorForValue = (inputValue: number): string => {
+
+
+  const getColorForValue = useCallback((inputValue: number): string => {
     for (const rule of thresholdRules) {
       const { operator, value, color } = rule;
   
@@ -123,11 +154,12 @@ const PolygonMap: React.FC = () => {
         (operator === '>' && inputValue > value) ||
         (operator === '>=' && inputValue >= value);
   
-      if (match) return color;  // ✅ First match is applied
+      if (match) return color;
     }
   
-    return 'purple'; // fallback color
-  };
+    return 'purple';
+  }, [thresholdRules]);
+  
   
 
   const addPolygon = useCallback((poly: PolygonData) => {
@@ -136,9 +168,20 @@ const PolygonMap: React.FC = () => {
 
   const handleSourceChange = (id: number, source: string) => {
     setPolygonData(prev =>
-      prev.map((poly, index) => index === id - 1 ? { ...poly, metadata: { source } } : poly)
+      prev.map((poly, index) =>
+        index === id - 1
+          ? {
+              ...poly,
+              metadata: {
+                ...poly.metadata, // ✅ retain existing centroid
+                source            // ✅ update only source
+              }
+            }
+          : poly
+      )
     );
   };
+  
 
   const handleThresholdChange = (index: number, rule: Rule) => {
     const updated = [...thresholdRules];
@@ -198,6 +241,43 @@ const PolygonMap: React.FC = () => {
       mapRef.current?.setView(center);
     }
   };
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const fetchAndColorPolygon = useCallback(async (poly: PolygonData) => {
+  const { lat, lng } = poly.metadata.centroid;
+  const { start, end } = timelineRange;
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m&start_date=${start}&end_date=${end}&timezone=auto`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const values: number[] = data.hourly?.temperature_2m || [];
+    if (!values.length) return;
+
+    const average = values.reduce((a, b) => a + b, 0) / values.length;
+    const newColor = getColorForValue(average);
+
+    // update polygon color on the map
+    drawnItemsRef.current.eachLayer((layer: any) => {
+      if (layer.getLatLngs) {
+        const layerLatLngs = layer.getLatLngs()[0].map((pt: L.LatLng) => [pt.lat, pt.lng]);
+        const polygonLatLngs = poly.latlngs.map((pt) =>
+          Array.isArray(pt) ? pt : [pt.lat, pt.lng]
+        );
+
+        const isSamePolygon = JSON.stringify(layerLatLngs) === JSON.stringify(polygonLatLngs);
+
+        if (isSamePolygon) {
+          layer.setStyle({ color: newColor, fillColor: newColor });
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching data for polygon:', err);
+  }
+}, [timelineRange, getColorForValue]);
+
 
   useEffect(() => {
     const map = mapRef.current;
@@ -217,6 +297,14 @@ const PolygonMap: React.FC = () => {
     };
   }, [polygonData]);
 
+  useEffect(() => {
+    polygonData.forEach((poly) => {
+      fetchAndColorPolygon(poly);
+    });
+  }, [timelineRange, polygonData, fetchAndColorPolygon]);
+  
+  
+
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar
@@ -228,6 +316,8 @@ const PolygonMap: React.FC = () => {
 />
       <div style={{ marginTop: '30px', flexGrow: 1 }}>
         <div style={{ marginBottom: '10px' }}>
+        <TimelineSlider onRangeChange={onTimelineChange} />
+
           <button onClick={handleViewPolygons}>View All</button>
           <button onClick={handleDeleteAll} style={{ marginLeft: 10 }}>
             Delete All
