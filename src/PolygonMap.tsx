@@ -4,21 +4,34 @@ import L, { LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet-draw';
+import Sidebar from './Sidebar';
 
 const center: [number, number] = [17.385044, 78.486671];
 const datasources = ['Crop Field', 'Waterbody'];
 
-type PolygonData = {
+// NEW: Threshold Rule Type
+type Rule = {
+  color: string;
+  operator: '<' | '>' | '<=' | '>=' | '=';
+  value: number;
+};
+
+
+// MODIFIED: Added appliedColor
+interface PolygonData {
   latlngs: LatLngExpression[];
   metadata: { source: string };
-};
+  appliedColor?: string;
+}
 
 const PolygonDrawer = ({
   drawnItemsRef,
   addPolygon,
+  getColorForValue,
 }: {
   drawnItemsRef: React.RefObject<L.FeatureGroup>;
   addPolygon: (polygon: PolygonData) => void;
+  getColorForValue: (value: number) => string;
 }) => {
   const map = useMap();
 
@@ -70,7 +83,11 @@ const PolygonDrawer = ({
         latlngs = (rawLatLngs as L.LatLng[]).map((point) => [point.lat, point.lng]);
       }
 
-      addPolygon({ latlngs, metadata: { source: selectedSource } });
+      const dummyValue = Math.floor(Math.random() * 50); // simulate
+      const color = getColorForValue(dummyValue);
+      layer.setStyle({ color });
+
+      addPolygon({ latlngs, metadata: { source: selectedSource }, appliedColor: color });
 
       drawnItems.addLayer(layer);
     });
@@ -78,7 +95,7 @@ const PolygonDrawer = ({
     return () => {
       map.off(L.Draw.Event.CREATED);
     };
-  }, [map, drawnItemsRef, addPolygon]);
+  }, [map, drawnItemsRef, addPolygon, getColorForValue]);
 
   return null;
 };
@@ -87,10 +104,47 @@ const PolygonMap: React.FC = () => {
   const drawnItemsRef = useRef<L.FeatureGroup>(new L.FeatureGroup());
   const mapRef = useRef<L.Map | null>(null);
   const [polygonData, setPolygonData] = useState<PolygonData[]>([]);
+  const [thresholdRules, setThresholdRules] = useState<Rule[]>([{
+    color: 'red', operator: '<', value: 10
+  }, {
+    color: 'blue', operator: '<', value: 25
+  }, {
+    color: 'green', operator: '>=', value: 25
+  }]);
+
+  const getColorForValue = (inputValue: number): string => {
+    for (const rule of thresholdRules) {
+      const { operator, value, color } = rule;
+  
+      const match =
+        (operator === '<' && inputValue < value) ||
+        (operator === '<=' && inputValue <= value) ||
+        (operator === '=' && inputValue === value) ||
+        (operator === '>' && inputValue > value) ||
+        (operator === '>=' && inputValue >= value);
+  
+      if (match) return color;  // ✅ First match is applied
+    }
+  
+    return 'purple'; // fallback color
+  };
+  
 
   const addPolygon = useCallback((poly: PolygonData) => {
     setPolygonData((prev) => [...prev, poly]);
   }, []);
+
+  const handleSourceChange = (id: number, source: string) => {
+    setPolygonData(prev =>
+      prev.map((poly, index) => index === id - 1 ? { ...poly, metadata: { source } } : poly)
+    );
+  };
+
+  const handleThresholdChange = (index: number, rule: Rule) => {
+    const updated = [...thresholdRules];
+    updated[index] = rule;
+    setThresholdRules(updated);
+  };
 
   const handleDeleteAll = () => {
     drawnItemsRef.current.clearLayers();
@@ -123,7 +177,7 @@ const PolygonMap: React.FC = () => {
       drawnItemsRef.current.clearLayers();
 
       updated.forEach((poly) => {
-        const layer = L.polygon(poly.latlngs, { color: 'purple' });
+        const layer = L.polygon(poly.latlngs, { color: poly.appliedColor || 'purple' });
         drawnItemsRef.current.addLayer(layer);
       });
 
@@ -145,7 +199,6 @@ const PolygonMap: React.FC = () => {
     }
   };
 
-  // 👇 ADD THIS EFFECT FOR DRAG-END RECENTERING
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -165,43 +218,52 @@ const PolygonMap: React.FC = () => {
   }, [polygonData]);
 
   return (
-    <div style={{ marginTop: '30px' }}>
-      <div style={{ marginBottom: '10px' }}>
-        <button onClick={handleViewPolygons}>View All</button>
-        <button onClick={handleDeleteAll} style={{ marginLeft: 10 }}>
-          Delete All
-        </button>
-        <button onClick={handleDeleteOne} style={{ marginLeft: 10 }}>
-          Delete One
-        </button>
-        <button onClick={handleResetCenter} style={{ marginLeft: 10 }}>
-          Reset Center
-        </button>
-      </div>
+    <div style={{ display: 'flex' }}>
+      <Sidebar
+  polygons={polygonData.map((p, i) => ({ id: i + 1, source: p.metadata.source }))}
+  dataSources={datasources}
+  thresholdRules={thresholdRules}
+  onSourceChange={handleSourceChange}
+  onThresholdChange={handleThresholdChange}
+/>
+      <div style={{ marginTop: '30px', flexGrow: 1 }}>
+        <div style={{ marginBottom: '10px' }}>
+          <button onClick={handleViewPolygons}>View All</button>
+          <button onClick={handleDeleteAll} style={{ marginLeft: 10 }}>
+            Delete All
+          </button>
+          <button onClick={handleDeleteOne} style={{ marginLeft: 10 }}>
+            Delete One
+          </button>
+          <button onClick={handleResetCenter} style={{ marginLeft: 10 }}>
+            Reset Center
+          </button>
+        </div>
 
-      <MapContainer
-        center={center}
-        zoom={17}
-        minZoom={17}
-        maxZoom={17}
-        scrollWheelZoom={false}
-        doubleClickZoom={false}
-        zoomControl={false}
-        dragging={true}
-        style={{ height: '400px', width: '100%' }}
-        ref={(node) => {
-          if (node !== null) {
-            mapRef.current = node;
-          }
-        }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
-        <FeatureGroup ref={drawnItemsRef} />
-        <PolygonDrawer drawnItemsRef={drawnItemsRef} addPolygon={addPolygon} />
-      </MapContainer>
+        <MapContainer
+          center={center}
+          zoom={17}
+          minZoom={17}
+          maxZoom={17}
+          scrollWheelZoom={false}
+          doubleClickZoom={false}
+          zoomControl={false}
+          dragging={true}
+          style={{ height: '400px', width: '100%' }}
+          ref={(node) => {
+            if (node !== null) {
+              mapRef.current = node;
+            }
+          }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
+          <FeatureGroup ref={drawnItemsRef} />
+          <PolygonDrawer drawnItemsRef={drawnItemsRef} addPolygon={addPolygon} getColorForValue={getColorForValue} />
+        </MapContainer>
+      </div>
     </div>
   );
 };

@@ -1,93 +1,57 @@
-// Sidebar.tsx
-import React, { useState } from 'react';
+import React from 'react';
 
-type Rule = {
+interface ThresholdRule {
   color: string;
-  operator: string;
+  operator: '=' | '<' | '>' | '<=' | '>=';
   value: number;
-};
+}
 
-type Props = {
-  onRulesChange: (field: string, rules: Rule[]) => void;
-};
+interface SidebarProps {
+  polygons: Array<{ id: number; source: string }>;
+  dataSources: string[];
+  thresholdRules: ThresholdRule[];
+  onSourceChange: (id: number, source: string) => void;
+  onThresholdChange: (index: number, rule: ThresholdRule) => void;
+}
 
-const Sidebar: React.FC<Props> = ({ onRulesChange }) => {
-  const [field, setField] = useState('temperature_2m');
-  const [rules, setRules] = useState<Rule[]>([
-    { color: 'red', operator: '<', value: 10 }
-  ]);
-
-  const addRule = () => {
-    setRules([...rules, { color: 'blue', operator: '>=', value: 10 }]);
-  };
-
-  const updateRule = (index: number, updated: Partial<Rule>) => {
-    const newRules = [...rules];
-    newRules[index] = { ...newRules[index], ...updated };
-    setRules(newRules);
-    onRulesChange(field, newRules);
-  };
-
-  const deleteRule = (index: number) => {
-    const newRules = rules.filter((_, i) => i !== index);
-    setRules(newRules);
-    onRulesChange(field, newRules);
-  };
-
+const Sidebar: React.FC<SidebarProps> = ({
+  polygons,
+  dataSources,
+  thresholdRules,
+  onSourceChange,
+  onThresholdChange
+}) => {
   return (
-    <div style={{ border: '1px solid #ccc', padding: '10px', width: '300px' }}>
-      <h3>Data Source Sidebar</h3>
-
-      <label>Field (e.g., temperature_2m): </label>
-      <input
-        value={field}
-        onChange={(e) => {
-          setField(e.target.value);
-          onRulesChange(e.target.value, rules);
-        }}
-        style={{ width: '100%' }}
-      />
-
-      <hr />
-
-      {rules.map((rule, index) => (
-        <div key={index} style={{ marginBottom: 10 }}>
-          <select
-            value={rule.color}
-            onChange={(e) => updateRule(index, { color: e.target.value })}
-          >
-            <option value="red">🔴 Red</option>
-            <option value="yellow">🟡 Yellow</option>
-            <option value="blue">🔵 Blue</option>
-            <option value="green">🟢 Green</option>
+    <div style={{ width: 300, padding: 10, borderRight: '1px solid #ccc' }}>
+      <h3>Polygons</h3>
+      {polygons.map(({ id, source }) => (
+        <div key={id} style={{ marginBottom: 12 }}>
+          <div>Polygon {id}</div>
+          <select value={source} onChange={e => onSourceChange(id, e.target.value)}>
+            {dataSources.map(ds => (
+              <option key={ds} value={ds}>{ds}</option>
+            ))}
           </select>
-
-          <select
-            value={rule.operator}
-            onChange={(e) => updateRule(index, { operator: e.target.value })}
-            style={{ marginLeft: 5 }}
-          >
-            <option value="<">{'<'}</option>
-            <option value="<=">{'<='}</option>
-            <option value="=">{'='}</option>
-            <option value=">">{'>'}</option>
-            <option value=">=">{'>='}</option>
-          </select>
-
-          <input
-            type="number"
-            value={rule.value}
-            onChange={(e) => updateRule(index, { value: Number(e.target.value) })}
-            style={{ width: 60, marginLeft: 5 }}
-          />
-
-          <button onClick={() => deleteRule(index)} style={{ marginLeft: 5 }}>
-            🗑️
-          </button>
         </div>
       ))}
 
-      <button onClick={addRule}>Add Rule</button>
+      <h3>Threshold Rules</h3>
+      {thresholdRules.map((rule, index) => (
+        <div key={index} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="color" value={rule.color}
+            onChange={e => onThresholdChange(index, { ...rule, color: e.target.value })} />
+          <select value={rule.operator}
+            onChange={e => onThresholdChange(index, { ...rule, operator: e.target.value as any })}>
+            <option value="=">=</option>
+            <option value="<">&lt;</option>
+            <option value=">">&gt;</option>
+            <option value="<=">&lt;=</option>
+            <option value=">=">&gt;=</option>
+          </select>
+          <input type="number" value={rule.value}
+            onChange={e => onThresholdChange(index, { ...rule, value: parseFloat(e.target.value) })} />
+        </div>
+      ))}
     </div>
   );
 };
