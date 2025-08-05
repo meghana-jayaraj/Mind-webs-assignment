@@ -1,12 +1,13 @@
 import React from 'react';
 import TimelineSlider from './TimelineSlider';
-import InteractiveMap from './InteractiveMap';
+// import InteractiveMap from './InteractiveMap';
+import PolygonMap from './PolygonMap';
 
 function App() {
   return (
-    <div>
+    <div className="App">
       <TimelineSlider />
-      <InteractiveMap />
+      <PolygonMap />
     </div>
   );
 }

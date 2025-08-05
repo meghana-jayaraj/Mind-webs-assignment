@@ -1,3 +1,4 @@
+import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet/dist/leaflet.css';
 import 'antd/dist/reset.css';
 import React from 'react';
