@@ -1,17 +1,75 @@
-# Getting Started with Create React App
+# Interactive Polygon Map
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Welcome!  
+This is a simple and interactive map application built with **React** and **Leaflet**. It allows you to draw polygons on the map, move around freely, and still keep those shapes visible — super useful for geospatial tasks, visual planning, or just exploring how maps work.
+---
 
-## Available Scripts
+## How to Set Up and Run the Project
 
-In the project directory, you can run:
+Follow these quick steps to get it running on your device.
 
-### `npm start`
+### 1. Clone the project
+Download a copy of this project to your machine:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```bash
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+```
+### 2. Install all the Dependencies.
+This command installs all the libraries the project needs:
 
-The page will reload if you make edits.\
+```bash
+npm install
+```
+
+### 3. Start the App.
+
+This will launch the app in your default web browser.
+
+```bash
+npm start
+```
+That’s it! The app will be available at http://localhost:3000
+
+Whenever you make changes, the page will reload automatically.
+
+### Libraries used.
+Here are the main tools and libraries that power this project:
+
+| Library              | Why it's used                                          |
+|----------------------|--------------------------------------------------------|
+| **React**            | To build the user interface using components           |
+| **React Leaflet**    | To integrate Leaflet maps smoothly into the React app  |
+| **Leaflet**          | To render interactive maps                             |
+| **Leaflet Draw**     | To allow drawing/editing polygons on the map           |
+| **Create React App** | To set up the project easily with zero config          |
+
+All of these work together to give you a rich, interactive map experience inside a modern web app.
+
+### A Simple Design & Developement Notes.
+
+* This project is kept simple and clean, focusing only on essential features.
+
+* The map is designed to keep polygons visible, even when the user pans or moves the view.
+
+* Zoom controls are disabled by default for a focused experience (you can enable them if needed).
+
+* The layout is minimal so users can focus on the map without distractions.
+
+* Built with Create React App, making it easy to extend, maintain, and deploy later.
+
+* Due to API access being unavailable during development, this version doesn’t include live API calls.
+  But the code is ready to integrate them in the future when they are again available.
+
+##  Screenshots
+
+###  Main View
+
+
+
+
+
+
 You will also see any lint errors in the console.
 
 ### `npm test`
