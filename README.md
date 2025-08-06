@@ -1,4 +1,4 @@
-# Interactive Polygon Map
+# 🗺 Interactive Polygon Map
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
