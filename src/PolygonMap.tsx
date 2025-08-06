@@ -107,9 +107,9 @@ const PolygonDrawer = ({
         latlngs = (rawLatLngs as L.LatLng[]).map((point) => [point.lat, point.lng]);
       }
     
-      const simulatedValue = parseFloat((Math.random() * 50).toFixed(2));
-      const color = getColorForValue(simulatedValue);
-      layer.setStyle({ color, fillColor: color });
+      const color = 'gray'; // initial color placeholder
+layer.setStyle({ color, fillColor: color });
+
     
       const centerLatLng = layer.getBounds().getCenter();
     
@@ -127,9 +127,10 @@ addPolygon({
       lng: centerLatLng.lng
     }
   },
-  appliedColor: color,
+  appliedColor: color, // or 'gray'
   timestamp: timelineRange.start
 });
+
       drawnItems.addLayer(layer);
     });    
 
@@ -147,16 +148,12 @@ addPolygon({
 const PolygonMap: React.FC<PolygonMapProps> = ({ timelineRange, onTimelineChange }) => {
   const drawnItemsRef = useRef<L.FeatureGroup>(new L.FeatureGroup());
   const mapRef = useRef<L.Map | null>(null);
-  const [loading, setLoading] = useState(false);
   const [polygonData, setPolygonData] = useState<PolygonData[]>([]);
   const [thresholdRules, setThresholdRules] = useState<Rule[]>([
     { color: '#ff0000', operator: '<', value: 10 },   // red
     { color: '#0000ff', operator: '<', value: 25 },   // blue
     { color: '#00ff00', operator: '>=', value: 25 }   // green
   ]);
-  
-
-
 
   const getColorForValue = useCallback((inputValue: number): string => {
     for (const rule of thresholdRules) {
@@ -175,12 +172,10 @@ const PolygonMap: React.FC<PolygonMapProps> = ({ timelineRange, onTimelineChange
     return 'purple';
   }, [thresholdRules]);
   
-  
-
   const addPolygon = useCallback((poly: PolygonData) => {
-    setPolygonData((prev) => [...prev, poly]);
+    setPolygonData(prev => [...prev, poly]);
   }, []);
-
+  
   const handleSourceChange = (id: number, source: string) => {
     setPolygonData(prev =>
       prev.map((poly, index) =>
@@ -206,7 +201,7 @@ const PolygonMap: React.FC<PolygonMapProps> = ({ timelineRange, onTimelineChange
 
   const handleDeleteAll = () => {
     drawnItemsRef.current.clearLayers();
-    setPolygonData([]);
+    // setPolygonData([]);
   };
 
   const handleViewPolygons = () => {
@@ -284,42 +279,47 @@ const fetchAndColorPolygon = useCallback(async (poly: PolygonData, index: number
   try {
     const response = await fetch(url);
     const data = await response.json();
-
+  
     const hourlyTimes: string[] = data.hourly?.time || [];
     const temps: number[] = data.hourly?.temperature_2m || [];
-
-    // Match times to selected hours
+    console.log(temps)
+  
     const matchedTemps = hourlyTimes.reduce((acc: number[], t, idx) => {
       if (selectedHours.includes(t)) acc.push(temps[idx]);
       return acc;
     }, []);
-
+  
     if (!matchedTemps.length) return;
-
+  
     const avgTemp = matchedTemps.reduce((a, b) => a + b, 0) / matchedTemps.length;
     const newColor = getColorForValue(avgTemp);
-
-    // Set style using ID match
+  
+    // Update the polygon color on the map
     drawnItemsRef.current.eachLayer((layer: any) => {
       const layerId = layer.options?.customId;
       if (layerId === poly.id) {
         layer.setStyle({ color: newColor, fillColor: newColor });
       }
     });
-
-    // Update polygon state
+  
+    // ✅ Update the polygon state in polygonData array
     setPolygonData(prev => {
       const updated = [...prev];
       updated[index] = {
         ...updated[index],
         appliedColor: newColor,
+        metadata: {
+          ...updated[index].metadata,
+          simulatedValue: avgTemp,
+        }
       };
       return updated;
     });
-
+  
   } catch (err) {
     console.error("❌ Error fetching data:", err);
   }
+  
 }, [timelineRange, getColorForValue]);
 
 
@@ -340,17 +340,12 @@ const fetchAndColorPolygon = useCallback(async (poly: PolygonData, index: number
       map.off('dragend', handleDragEnd);
     };
   }, [polygonData]);
-
+  
   useEffect(() => {
     if (!polygonData.length) return;
-
-  setLoading(true);
-  Promise.all(polygonData.map((poly, i) => fetchAndColorPolygon(poly, i)))
-    .then(() => setLoading(false))
-    .catch(err => {
-      console.error("Error updating polygons", err);
-      setLoading(false);
-    });
+  
+    Promise.all(polygonData.map((poly, i) => fetchAndColorPolygon(poly, i)))
+      .catch(err => console.error("Error:", err));
   }, [timelineRange.start, timelineRange.end, fetchAndColorPolygon, polygonData]);
   
   return (
@@ -371,12 +366,10 @@ const fetchAndColorPolygon = useCallback(async (poly: PolygonData, index: number
           <button onClick={handleDeleteOne} style={{ marginLeft: 10 }}>
             Delete One
           </button>
-          <button onClick={handleResetCenter} style={{ marginLeft: 10 }}>
+          {/* <button onClick={handleResetCenter} style={{ marginLeft: 10 }}>
             Reset Center
-          </button>
+          </button> */}
         </div>
-        {loading && <div style={{ color: 'blue', marginBottom: 10 }}>🔄 Updating temperatures...</div>}
-
         <MapContainer
           center={center}
           zoom={17}
