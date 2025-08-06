@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import { Slider } from 'antd';
-import 'antd/dist/reset.css'; // Ensure AntD styles load
+import 'antd/dist/reset.css';
 
 interface TimelineSliderProps {
   onRangeChange: (range: { start: string; end: string }) => void;
 }
+
 const TimelineSlider: React.FC<TimelineSliderProps> = ({ onRangeChange }) => {
   const [value, setValue] = useState<number[]>([0, 24]);
 
   const onChange = (val: number | number[]) => {
     if (Array.isArray(val)) {
       setValue(val);
+
+      const baseDate = '2025-08-05'; // static date for now
+      const formatHour = (h: number) => (h % 24).toString().padStart(2, '0');
+
+      const start = `${baseDate}T${formatHour(val[0])}:00`;
+      const end = `${baseDate}T${formatHour(val[1])}:00`;
+
+      onRangeChange({ start, end });
     }
   };
 
@@ -20,7 +29,6 @@ const TimelineSlider: React.FC<TimelineSliderProps> = ({ onRangeChange }) => {
     const hour = val % 24;
     return `Day ${day}, Hour ${hour}:00`;
   };
-  
 
   return (
     <div style={{ width: 400, margin: '40px auto' }}>
