@@ -1,5 +1,7 @@
-# 🗺 Interactive Polygon Map
+# Interactive Polygon Map
 
+Welcome!  
+This is a simple and interactive map application built with **React** and **Leaflet**. It allows you to draw polygons on the map, move around freely, and still keep those shapes visible — super useful for geospatial tasks, visual planning, or just exploring how maps work.
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
