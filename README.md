@@ -65,8 +65,8 @@ All of these work together to give you a rich, interactive map experience inside
 
 ###  Main View
 
-![Main Map View](./src/Screenshot 1.png)
-![Main Map View](./src/Screenshot 2.png)
+https://github.com/meghana-jayaraj/Mind-webs-assignment/blob/6881d077a25e9025cf8b7a59c8df9054814745ba/src/Screenshot%201.png
+
 
 
 
