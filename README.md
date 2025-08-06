@@ -65,6 +65,8 @@ All of these work together to give you a rich, interactive map experience inside
 
 ###  Main View
 
+![Main Map View](src/Screenshot 1.png)
+![Main Map View](src/Screenshot 2.png)
 
 
 
