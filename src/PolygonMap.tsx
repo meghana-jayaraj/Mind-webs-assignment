@@ -201,7 +201,7 @@ const PolygonMap: React.FC<PolygonMapProps> = ({ timelineRange, onTimelineChange
 
   const handleDeleteAll = () => {
     drawnItemsRef.current.clearLayers();
-    // setPolygonData([]);
+    setPolygonData([]);
   };
 
   const handleViewPolygons = () => {
@@ -242,15 +242,15 @@ const PolygonMap: React.FC<PolygonMapProps> = ({ timelineRange, onTimelineChange
     }
   };
 
-  const handleResetCenter = () => {
-    if (polygonData.length > 0) {
-      const allPoints = polygonData.flatMap(p => p.latlngs) as [number, number][];
-      const bounds = L.latLngBounds(allPoints);
-      mapRef.current?.fitBounds(bounds, { padding: [40, 40] });
-    } else {
-      mapRef.current?.setView(center);
-    }
-  };
+  // const handleResetCenter = () => {
+  //   if (polygonData.length > 0) {
+  //     const allPoints = polygonData.flatMap(p => p.latlngs) as [number, number][];
+  //     const bounds = L.latLngBounds(allPoints);
+  //     mapRef.current?.fitBounds(bounds, { padding: [40, 40] });
+  //   } else {
+  //     mapRef.current?.setView(center);
+  //   }
+  // };
 
   // Return an array of ISO strings between start and end (inclusive), hour-by-hour
 const getSelectedHours = (startISO: string, endISO: string): string[] => {
